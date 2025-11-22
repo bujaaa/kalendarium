@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <title>Adventi kalendárium</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #111;
+      color: #fff;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .calendar {
+      max-width: 700px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 10px;
+    }
+
+    .day {
+      background: #333;
+      border-radius: 8px;
+      padding: 15px 10px;
+      text-align: center;
+      cursor: pointer;
+      position: relative;
+      min-height: 70px;
+      user-select: none;
+      transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.2s ease;
+    }
+
+    .day:hover:not(.locked) {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+    }
+
+    .day.locked {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .day.opened {
+      background: #2e7d32;
+    }
+
+    .day-number {
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    .day-text {
+      display: none;
+      margin-top: 8px;
+      font-size: 14px;
+    }
+
+    .day.opened .day-number {
+      display: none;
+    }
+
+    .day.opened .day-text {
+      display: block;
+    }
+
+    #reset {
+      display: block;
+      margin: 20px auto 5px auto;
+      padding: 8px 16px;
+      font-size: 14px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+    }
+
+    #message {
+      text-align: center;
+      font-size: 14px;
+      min-height: 20px;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Adventi kalendárium</h1>
+  <div class="calendar" id="calendar"></div>
+  <button id="reset">Reset (teszteléshez)</button>
+  <div id="message"></div>
+
+  <script>
+    // ==== ITT TUDOD ÁTÍRNI A SZÖVEGEKET NAPONKÉNT ====
+    // 1: "első nap szövege", 2: "második nap szövege", stb.
+    const texts = {
+      1: "1. nap: itt lehet pl. hogy hova rejtetted az ajándékot.",
+      2: "2. nap: ide írhatsz egy üzenetet vagy rejtekhelyet.",
+      3: "3. nap szövege...",
+      4: "4. nap szövege...",
+      5: "5. nap szövege...",
+      6: "6. nap szövege...",
+      7: "7. nap szövege...",
+      8: "8. nap szövege...",
+      9: "9. nap szövege...",
+      10: "10. nap szövege...",
+      11: "11. nap szövege...",
+      12: "12. nap szövege...",
+      13: "13. nap szövege...",
+      14: "14. nap szövege...",
+      15: "15. nap szövege...",
+      16: "16. nap szövege...",
+      17: "17. nap szövege...",
+      18: "18. nap szövege...",
+      19: "19. nap szövege...",
+      20: "20. nap szövege...",
+      21: "21. nap szövege...",
+      22: "22. nap szövege...",
+      23: "23. nap szövege...",
+      24: "24. nap szövege..."
+    };
+
+    // ==== BEÁLLÍTÁSOK ====
+    const TEST_MODE = false;   // ha true, bármelyik nap kinyitható (teszteléshez)
+    const ONLY_DECEMBER = false; // ha csak decemberben akarod szigorúan használni
+
+    // aktuális dátum lekérése
+    const now = new Date();
+    const currentDay = now.getDate();       // 1-31
+    const currentMonth = now.getMonth() + 1; // 1-12 (december = 12)
+    const currentYear = now.getFullYear();
+
+    // kulcs a localStorage-hoz (évhez kötve)
+    const STORAGE_KEY = "advent_opened_" + currentYear;
+
+    // már kinyitott napok betöltése
+    const openedArray = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    const openedSet = new Set(openedArray);
+
+    const calendarEl = document.getElementById("calendar");
+    const messageEl = document.getElementById("message");
+
+    // 1–24 doboz létrehozása
+    for (let day = 1; day <= 24; day++) {
+      const box = document.createElement("div");
+      box.className = "day";
+      box.dataset.day = String(day);
+
+      const num = document.createElement("div");
+      num.className = "day-number";
+      num.textContent = day;
+
+      const text = document.createElement("div");
+      text.className = "day-text";
+      text.textContent = texts[day] || `Nincs beállítva szöveg a ${day}. napra.`;
+
+      box.appendChild(num);
+      box.appendChild(text);
+
+      // Meg van-e nyitva?
+      if (openedSet.has(day)) {
+        box.classList.add("opened");
+      }
+
+      // Nyitható-e az adott nap?
+      function isAllowed() {
+        if (TEST_MODE) return true; // teszt módban bármi nyitható
+
+        if (ONLY_DECEMBER && currentMonth !== 12) {
+          return false;
+        }
+
+        // csak az a nap nyitható, ami <= mai nap száma
+        return day <= currentDay;
+      }
+
+      if (!isAllowed()) {
+        box.classList.add("locked");
+      }
+
+      box.addEventListener("click", () => {
+        messageEl.textContent = "";
+
+        if (!isAllowed()) {
+          messageEl.textContent = "Ezt a napot még nem lehet kinyitni!";
+          return;
+        }
+
+        if (!box.classList.contains("opened")) {
+          box.classList.add("opened");
+          openedSet.add(day);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(openedSet)));
+        }
+      });
+
+      calendarEl.appendChild(box);
+    }
+
+    // Reset gomb – minden nyitást töröl
+    document.getElementById("reset").addEventListener("click", () => {
+      if (!confirm("Biztosan törlöd az eddig kinyitott ablakokat?")) return;
+
+      localStorage.removeItem(STORAGE_KEY);
+      openedSet.clear();
+
+      document.querySelectorAll(".day").forEach(box => {
+        box.classList.remove("opened");
+      });
+
+      messageEl.textContent = "Minden nap újra zárva (csak a dátum szerinti napok lesznek nyithatók).";
+    });
+  </script>
+</body>
+</html>
